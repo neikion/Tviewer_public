@@ -1,0 +1,72 @@
+﻿<UserControl x:Class="WPF_Practice.view.SearchBar.SearchBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:WPF_Practice.view.SearchBar"
+             mc:Ignorable="d"
+             d:FontSize="24"
+             d:DesignWidth="800">
+    <UserControl.Resources>
+        <local:BoolOrTextVisibleConVerter x:Key="VisibleConverter" />
+    </UserControl.Resources>
+    <UserControl.Style>
+        <Style>
+            <Setter Property="ItemsControl.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Name="TextBarWidthDef"
+                                                  Width="9*" />
+                                <ColumnDefinition Name="SerachButtonWidthDef"
+                                                  Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <!--
+                            Grid에 BackGround를 설정시 textbar background설정
+                            -->
+                            <Grid Name="SearchBar"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                  Margin="{TemplateBinding Property=Padding}"
+                                  Background="White"
+                                  Grid.Column="0"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch">
+                                <!--textblock의 VerticalAlignment설정 시 hint 위치 조정-->
+                                <TextBlock Padding="5,0,0,0"
+                                           Text="{Binding RelativeSource={RelativeSource AncestorType=local:SearchBar},Path=Hint}"
+                                           Foreground="LightSteelBlue"
+                                           VerticalAlignment="Center"
+                                           Height="{Binding ElementName=txtSearchBox,Path=ActualHeight}"
+                                           FontSize="{Binding ElementName=txtSearchBox, Path=FontSize}"
+                                           IsHitTestVisible="False">
+                                    <TextBlock.Visibility>
+                                        <MultiBinding Converter="{StaticResource VisibleConverter}">
+                                            <Binding ElementName="txtSearchBox"
+                                                     Path="IsFocused" />
+                                            <Binding ElementName="txtSearchBox"
+                                                     Path="Text" />
+                                        </MultiBinding>
+                                    </TextBlock.Visibility>
+                                </TextBlock>
+                                <TextBox Name="txtSearchBox"
+                                         VerticalAlignment="Stretch"
+                                         Text="{Binding RelativeSource={RelativeSource AncestorType=local:SearchBar},Path=Text, Mode=TwoWay}"
+                                         IsReadOnly="{Binding RelativeSource={RelativeSource AncestorType=local:SearchBar},Path=IsReadOnly}"
+                                         Background="Transparent" />
+                            </Grid>
+
+                            <Button Grid.Column="1"
+                                    Content="{Binding RelativeSource={RelativeSource AncestorType=local:SearchBar},Path=ButtonText}"
+                                    Command="{Binding RelativeSource={RelativeSource AncestorType=local:SearchBar},Path=ButtonCommand}"
+                                    Height="{Binding ElementName=SearchBar,Path=ActualHeight}" />
+
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Style>
+
+</UserControl>

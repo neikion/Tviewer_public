@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <Platforms>AnyCPU;x64</Platforms>
+    <!--winforms(FolderBrowserDialog)을 사용하기 위한 코드. wpf는 .net core로 만들기 때문에 윈도우 종속적인 코드가 없다. -->
+    <UseWindowsForms>True</UseWindowsForms>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <BaseOutputPath>D:\User\Work\C# LAB\LAB6_window\WPF_Practice\bin</BaseOutputPath>
+    <!--ms에 컴파일러 오류 보고 설정 -->
+    <ErrorReport>none</ErrorReport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EntityFramework" Version="6.5.1" />
+    <PackageReference Include="Magick.NET-Q8-OpenMP-x64" Version="13.10.0" />
+    <PackageReference Include="Magick.NET.SystemDrawing" Version="7.3.0" Aliases="Drawing" />
+    <PackageReference Include="Magick.NET.SystemWindowsMedia" Version="7.3.0" />
+    <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="./Fonts/*.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DB\data.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Resource Include="Resources\*"/>
+  </ItemGroup>
+</Project>

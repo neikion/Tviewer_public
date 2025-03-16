@@ -1,0 +1,22 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+    how to use
+    <TextBlock Text="test text" FontFamily="{StaticResource testfont}"/>
+    
+    how to setting
+    <FontFamily x:Key="(key name)">(font file path)#(font name)</FontFamily>
+    
+    font name is not file name
+    font name can be found by opening the font file.
+    
+    path must not contain space.
+    
+    default target directory is this folder location where this file is located.
+    for example, if this file located Fonts1 folder
+    and font files located Fonts2 folder in the same parent dierectory as Fonts1,
+    correct path is ../Fonts2/(font file name)#(font name)
+    -->
+    <FontFamily x:Key="testfont">./MaruBuri-Bold.ttf#마루 부리 굵은</FontFamily>
+
+</ResourceDictionary>

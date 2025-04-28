@@ -8,9 +8,9 @@ This project Aiming for an offline environment
 - Reduces image distortion caused by screen tones ✅
 - Provides a more intuitive sort order ✅
 - Seamless Image viewing ✅
-- Create favorite lists without duplicating files ⏳ (Partially implemented)
-- Automatically detects newly added file groups ⏳ (Partially implemented)
-- Enables fast and accurate searching through tags ⏳ (Partially implemented)
+- Create favorite lists without duplicating files ⏳ (In progress)
+- Automatically detects newly added file groups ⏳ (In progress)
+- Enables fast and accurate searching through tags ⏳ (In progress)
 
 
 ## ⚠️ Warning

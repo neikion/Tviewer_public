@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Windows;
-using System.Windows.Forms;
 using System.Windows.Interop;
-using WPF_Practice.Interfaces;
+using Tviewer.Interfaces;
 
-namespace WPF_Practice.model
+namespace Tviewer.model
 {
-    public class ScreenHelper : IWinformUsing
+    public class ScreenHelper : IWinDependency
     {
         public static IEnumerable<ScreenHelper> AllScreens()
         {

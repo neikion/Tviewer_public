@@ -1,0 +1,144 @@
+﻿<UserControl x:Class="Tviewer.view.SlidingPanel.SlidingPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Tviewer.view.SlidingPanel"
+             xmlns:controller="clr-namespace:Tviewer.controller"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=controller:SlidingPanelController}"
+             d:Background="#ff191919"
+             Loaded="Init"
+             KeyboardNavigation.DirectionalNavigation="Continue"
+             KeyboardNavigation.TabNavigation="Once"
+             d:DesignHeight="450"
+             d:DesignWidth="220">
+
+    <UserControl.Resources>
+        <Style x:Key="SliderPanelItem"
+               TargetType="{x:Type ListViewItem}">
+            <Setter Property="Focusable"
+                    Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListViewItem}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Margin="{TemplateBinding Margin}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </UserControl.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="70" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0"
+                    Margin="0,10,0,10"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Center">
+            <Button HorizontalContentAlignment="Center"
+                    Padding="5"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    Focusable="{Binding SlideState}"
+                    IsTabStop="True"
+                    Style="{StaticResource RoundButton}"
+                    Command="{Binding MenuCommand}">
+                <Image Source="{StaticResource MenuIcon}" />
+            </Button>
+
+            <!--StackPanel to focus menu first on Tab press-->
+            <StackPanel Orientation="Horizontal"
+                        KeyboardNavigation.TabNavigation="None">
+
+                <Button Content="Home"
+                        Background="Transparent"
+                        Foreground="White"
+                        Padding="5"
+                        Margin="5,0,0,0"
+                        FontSize="25"
+                        BorderBrush="Transparent"
+                        Focusable="{Binding SlideState}"
+                        Command="{Binding HomeCommand}"
+                        Style="{StaticResource RoundButton}" />
+
+                <Button Content="+"
+                        Background="Transparent"
+                        Padding="5"
+                        BorderBrush="Transparent"
+                        HorizontalContentAlignment="Left"
+                        Foreground="White"
+                        Margin="5,0,0,0"
+                        FontSize="25"
+                        Command="{Binding AddNewCollectionCommand}"
+                        Focusable="{Binding SlideState}"
+                        Style="{StaticResource RoundButton}" />
+            </StackPanel>
+
+        </StackPanel>
+
+        <Grid Grid.Row="2"
+              Margin="0,20,0,10"
+              KeyboardNavigation.TabNavigation="None">
+            <Grid.RowDefinitions>
+                <RowDefinition Height='9*' />
+                <RowDefinition Height="50" />
+            </Grid.RowDefinitions>
+            <ListView Grid.Row="0"
+                      ItemsSource="{Binding UserCollection}"
+                      Background="Transparent"
+                      BorderBrush="Transparent"
+                      ItemContainerStyle="{StaticResource SliderPanelItem}"
+                      ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                      ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                      VirtualizingPanel.ScrollUnit="Pixel"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Center"
+                      KeyboardNavigation.DirectionalNavigation="Continue"
+                      Focusable="False"
+                      FontSize="20">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Button Content="{Binding Name}"
+                                Focusable="{Binding RelativeSource={RelativeSource AncestorType=local:SlidingPanel}, Path=SlidingState}"
+                                Background="Transparent"
+                                Foreground="White"
+                                Padding="0,5,0,5"
+                                Style="{StaticResource RoundButton}" />
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <Button Grid.Row="1"
+                    FontSize="20"
+                    Name="config"
+                    Command="{Binding ConfigCommand}"
+                    Background="Transparent"
+                    Foreground="White"
+                    Padding="10,0,0,0"
+                    HorizontalContentAlignment="Left"
+                    Focusable="{Binding SlideState}"
+                    Style="{StaticResource RoundButton}">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="{StaticResource ConfigIcon}"
+                           Height="{Binding ElementName=configtext, Path=ActualHeight}"
+                           HorizontalAlignment="{Binding ElementName=config, Path=HorizontalContentAlignment}" />
+                    <TextBlock Text="config"
+                               Margin="10,0,0,0"
+                               Name="configtext"
+                               HorizontalAlignment="{Binding ElementName=config,Path=HorizontalContentAlignment}"
+                               VerticalAlignment="{Binding ElementName=config,Path=VerticalContentAlignment}" />
+                </StackPanel>
+            </Button>
+
+        </Grid>
+
+    </Grid>
+</UserControl>

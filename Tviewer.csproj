@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <Platforms>AnyCPU;x64;x86</Platforms>
+    <!--Window 종속적인 코드를 사용하기 위한 코드. -->
+    <UseWindowsForms>True</UseWindowsForms>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <BaseOutputPath>$(MSBuildProjectDirectory)\bin</BaseOutputPath>
+    <!--ms에 컴파일러 오류 보고 설정 -->
+    <ErrorReport>none</ErrorReport>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!--Magick.NET dependencies-->
+  <ItemGroup>
+    <PackageReference Include="Magick.NET-Q8-OpenMP-x64" Version="14.10.1" />
+    <PackageReference Include="Magick.NET.SystemDrawing" Version="8.0.14" Aliases="Drawing" />
+    <PackageReference Include="Magick.NET.SystemWindowsMedia" Version="8.0.14" />
+  </ItemGroup>
+
+  <!--System.Data.SQLite dependencies-->
+  <ItemGroup>
+    <PackageReference Include="System.Data.SQLite" Version="2.0.2" />
+    <PackageReference Include="SourceGear.sqlite3" Version="3.50.4.5" />
+  </ItemGroup>
+  
+  <!--Lucene.Net dependencies-->
+  <ItemGroup>
+    <PackageReference Include="Lucene.Net" Version="4.8.0-beta00017" />
+    <PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00017" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+  </ItemGroup>
+
+  <!--WPF Extension dependencies-->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+  </ItemGroup>
+  
+  <!--SkiaSharp dependencies-->
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="3.119.1" />
+    <PackageReference Include="SkiaSharp.Views.WPF" Version="3.119.1" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="./Fonts/*.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DB\data.db">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Library\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Resource Include="Resources\*" />
+  </ItemGroup>
+</Project>

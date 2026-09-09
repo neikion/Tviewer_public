@@ -1,0 +1,247 @@
+﻿<UserControl x:Class="Tviewer.view.OptionControl.ContentSettingView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Tviewer.view.OptionControl"
+             xmlns:interface="clr-namespace:Tviewer.Interfaces"
+             xmlns:extends="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:converter="clr-namespace:Tviewer.Converter"
+             d:DataContext="{d:DesignInstance Type=local:ContentSettingViewController}"
+             mc:Ignorable="d"
+             Name="root"
+             d:DesignHeight="450"
+             d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <converter:IEnumerableConverter x:Key="IEnumerableConverter" />
+        
+        <Style TargetType="{x:Type TextBlock}"
+               x:Key="ContentSettingItemStyle">
+            <Setter Property="Foreground"
+                    Value="White" />
+            <Setter Property="Padding"
+                    Value="5,3,0,3" />
+        </Style>
+
+        <Style TargetType="{x:Type TextBox}"
+               x:Key="ContentSettingItemEditStyle">
+            <Setter Property="Padding"
+                    Value="5,3,0,3" />
+            <Setter Property="Foreground"
+                    Value="White" />
+            <Setter Property="Background"
+                    Value="Black" />
+            <Setter Property="SelectionOpacity"
+                    Value="1" />
+            <Setter Property="SelectionTextBrush"
+                    Value="White" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBoxBase}">
+                        <Border x:Name="border"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Background="{TemplateBinding Background}"
+                                SnapsToDevicePixels="True">
+                            <!--name is must fixed-->
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="false"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled"
+                                     Value="false">
+                                <Setter Property="Opacity"
+                                        TargetName="border"
+                                        Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsFocused"
+                                     Value="true">
+                                <Setter Property="BorderBrush"
+                                        TargetName="border"
+                                        Value="White" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type Thumb}"
+               x:Key="DataGridThumb">
+            <Setter Property="Width"
+                    Value="8" />
+            <Setter Property="Cursor"
+                    Value="SizeWE" />
+            <Setter Property="Background"
+                    Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}">
+                            <Border Width="1"
+                                    HorizontalAlignment="Right"
+                                    Background="{TemplateBinding Foreground}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type DataGridCell}"
+               x:Key="DataGridCellStyle">
+            <Setter Property="BorderBrush"
+                    Value="Transparent" />
+            <Setter Property="BorderThickness"
+                    Value="0" />
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}" />
+            <Style.Triggers>
+                <!--Trigger, MultiDataTrigger order is important-->
+                <Trigger Property="IsSelected"
+                         Value="True">
+                    <Setter Property="BorderBrush"
+                            Value="White" />
+                    <Setter Property="Background"
+                            Value="DimGray" />
+                </Trigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsSelected}"
+                                   Value="True" />
+                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}, Path=IsKeyboardFocusWithin}"
+                                   Value="False" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="BorderBrush"
+                            Value="White" />
+                    <Setter Property="Background"
+                            Value="LightGray" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="{x:Type DataGridColumnHeader}"
+               x:Key="DataGridColumnHeaderStyle">
+            <Setter Property="Background"
+                    Value="White" />
+            <Setter Property="Padding"
+                    Value="5,5,0,5" />
+            <Setter Property="Foreground"
+                    Value="Black" />
+            <Setter Property="SeparatorBrush"
+                    Value="Gray" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type DataGridColumnHeader}">
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter Content="{TemplateBinding Content}" />
+                            </Border>
+                            <!--name is must fixed-->
+                            <Thumb x:Name="PART_RightHeaderGripper"
+                                   Foreground="{TemplateBinding SeparatorBrush}"
+                                   HorizontalAlignment="Right"
+                                   Style="{StaticResource DataGridThumb}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="ContentSettingItemSingle"
+                      DataType="interface:IContentSettingItem">
+            <TextBox Text="{Binding Value}"
+                     local:ContentSettingView.IsNumericOnly="{Binding IsNumericOnly}"
+                     Loaded="OnLoadedCellFocus"
+                     Style="{StaticResource ContentSettingItemEditStyle}" />
+        </DataTemplate>
+
+        <local:ContentSettingTemplateSelector x:Key="ContentEditTemplateSelector"
+                                              SingleTemplate="{StaticResource ContentSettingItemSingle}"/>
+
+
+        <DataTemplate x:Key="ContentItemSingle"
+                      DataType="interface:IContentSettingItem">
+            <TextBlock Text="{Binding Value}"
+                     local:ContentSettingView.IsNumericOnly="{Binding IsNumericOnly}"
+                     Style="{StaticResource ContentSettingItemStyle}" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="ContentItemMultiple"
+                      DataType="interface:IContentSettingItem">
+            <Button>
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter Content="{TemplateBinding Content}" />
+                    </ControlTemplate>
+                </Button.Template>
+                <Button.Content>
+                    <TextBlock
+                             Style="{StaticResource ContentSettingItemStyle}"
+                             Text="{Binding Value, Converter={StaticResource IEnumerableConverter}}" />
+                </Button.Content>
+                <extends:Interaction.Triggers>
+                    <extends:EventTrigger EventName="PreviewMouseDoubleClick">
+                        <extends:InvokeCommandAction Command="{Binding RelativeSource={RelativeSource AncestorType=local:ContentSettingView}, Path=DataContext.OpenEditWindow}"
+                                                     CommandParameter="{Binding }" />
+                    </extends:EventTrigger>
+                </extends:Interaction.Triggers>
+            </Button>
+        </DataTemplate>
+
+        <local:ContentSettingTemplateSelector x:Key="ContentTemplateSelector"
+                                              SingleTemplate="{StaticResource ContentItemSingle}"
+                                              MultipleTemplate="{StaticResource ContentItemMultiple}" />
+
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+
+        <DataGrid ItemsSource="{Binding Content}"
+                  AutoGenerateColumns="False"
+                  HeadersVisibility="Column"
+                  AlternationCount="2"
+                  AlternatingRowBackground="Black"
+                  RowBackground="Transparent"
+                  HorizontalGridLinesBrush="Transparent"
+                  VerticalGridLinesBrush="Gray"
+                  GridLinesVisibility="Vertical"
+                  Foreground="White"
+                  Background="Black"
+                  SelectionUnit="Cell"
+                  BorderThickness="0"
+                  PreviewKeyDown="OnCellEditKeyDown"
+                  GotFocus="OnGotFocusSelect"
+                  KeyboardNavigation.TabNavigation="Once"
+                  ColumnHeaderStyle="{StaticResource DataGridColumnHeaderStyle}"
+                  CellStyle="{StaticResource DataGridCellStyle}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name"
+                                    CanUserSort="False"
+                                    ElementStyle="{StaticResource ContentSettingItemStyle}"
+                                    IsReadOnly="True"
+                                    Binding="{Binding Name}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell"
+                               BasedOn="{StaticResource DataGridCellStyle}">
+                            <Setter Property="IsTabStop"
+                                    Value="False" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+
+                <DataGridTemplateColumn Header="Value"
+                                        Width="400"
+                                        CellEditingTemplateSelector="{StaticResource ContentEditTemplateSelector}"
+                                        CellTemplateSelector="{StaticResource ContentTemplateSelector}">
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </ScrollViewer>
+
+</UserControl>

@@ -1,37 +1,29 @@
 ﻿using ImageMagick;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Windows;
-using WPF_Practice.controller;
-using WPF_Practice.model;
-using WPF_Practice.view;
-using WPF_Practice.view.BaseModal;
+using System.Windows.Controls;
+using Tviewer.controller;
+using Tviewer.Interfaces;
+using Tviewer.model;
+using Tviewer.view;
 
-namespace WPF_Practice
+namespace Tviewer
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
         private void OnStart(object sender, StartupEventArgs e)
         {
+            //Prevent textbox / passward box selection background from covering the foreground.
+            //it must excute before init view
+            AppContext.SetSwitch("Switch.System.Windows.Controls.Text.UseAdornerForTextboxSelectionRendering", false);
             SetMagickNet();
+            AwakeInitializer.Scan();
             MainWindow window = new MainWindow();
-            var controller = new MainWindowControlloer();
-            window.DataContext = controller;
+            window.DataContext = ControllerStore.Get<MainWindowControlloer>();
             window.Show();
-            if (!Config.readUserConfig())
-            {
-                OpenModal(window, "First excute\nInitialization is required");
-                Config.OpenUserConfigWindow(window,false);
-            }
-            List<string> result=new List<string>();
-            WorkSpaceScanner scanner = new WorkSpaceScanner();
-            scanner.GetImageDirectoryList(ref result,Config.ConfigObject.WorkSpace[0]);
-            controller.Move<MainPage>(new MainPageController(controller));
         }
+
         private void SetMagickNet()
         {
             if (!Directory.Exists($"{Environment.CurrentDirectory}/temp"))
@@ -39,20 +31,92 @@ namespace WPF_Practice
                 Directory.CreateDirectory($"{Environment.CurrentDirectory}/temp");
             }
             MagickNET.SetTempDirectory($"{Environment.CurrentDirectory}/temp");
+            ImageMagick.OpenCL.SetCacheDirectory($"{Environment.CurrentDirectory}/temp");
+            ImageMagick.OpenCL.IsEnabled = true;
+            //ImageMagick.ResourceLimits.Throttle = 500;
+            //ImageMagick.ResourceLimits.Thread = (ulong)(Environment.ProcessorCount/2);
         }
 
-        public static void OpenModal(Window window,string text)
+        public static bool OpenModal(string text, IOwnerSetter? host=null, bool cancel=false)
         {
-            BaseModalWindow modal = new BaseModalWindow(text);
-            modal.Owner = window;
-            modal.CancleVisible = Visibility.Collapsed;
+            ModalWindowController controller = new ModalWindowController();
+            controller.ShowBaseModal(text,cancel);
+            ModalWindow modal = new ModalWindow(controller);
+            host?.SetOwner(controller);
             modal.ShowDialog();
+            return controller.DialogResult==true;
         }
-        public static void OpenModal(string text)
+
+        public static void OpenFloatingModal(string text, IOwnerSetter? setter=null)
         {
-            BaseModalWindow modal = new BaseModalWindow(text);
-            modal.CancleVisible = Visibility.Collapsed;
+            ModalWindowController controller = new ModalWindowController();
+            controller.ShowFloatingModal(text);
+            ModalWindow modal = new ModalWindow(controller);
+            setter?.SetOwner(controller);
+            modal.Show();
+        }
+
+        public static string OpenSimpleInputModal(string message,out bool cancel, IOwnerSetter? host=null)
+        {
+            ModalWindowController controller = new ModalWindowController();
+            var modalController=controller.ShowInputModal(message, true);
+            ModalWindow modal=new ModalWindow(controller);
+            host?.SetOwner(controller);
             modal.ShowDialog();
+            if (controller.DialogResult == true)
+            {
+                cancel = false;
+                return modalController.Content;
+            }
+            cancel = true;
+            return string.Empty;
+        }
+
+        public static void OpenUserConfigWindow(IOwnerSetter? host, bool Cancelable = true)
+        {
+            UserSettingWindow window = new UserSettingWindow();
+            UserSettingController? controller = ControllerStore.Get<UserSettingController>().Init(() => { window.DialogResult = true; });
+            controller.Cancelable = Cancelable;
+            window.DataContext = controller;
+            if (host != null)
+            {
+                host?.SetOwner(controller);
+                window.ShowInTaskbar = false;
+            }
+            else
+            {
+                window.ShowInTaskbar = true;
+            }
+            controller.OnEnable();
+            window.ShowDialog();
+        }
+
+        public static void OpenContentSettingWindow(ImageListContent content, IOwnerSetter? host=null, bool Cancelable = true)
+        {
+            UserSettingWindow window = new UserSettingWindow();
+            ContentSettingWindowController controller = ControllerStore.Get<ContentSettingWindowController>().init(content, () => { window.Close(); });
+            controller.Cancelable = Cancelable;
+            window.DataContext = controller;
+            if (host != null)
+            {
+                host.SetOwner(controller);
+                window.ShowInTaskbar = false;
+            }
+            else
+            {
+                window.ShowInTaskbar = true;
+            }
+            controller.OnEnable();
+            window.ShowDialog();
+        }
+
+        private void OnGotFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button)
+            {
+                if ((button.ContextMenu is not null && button.ContextMenu.IsOpen)) return;
+                VisualStateManager.GoToState(button, "MouseOver", true);
+            }
         }
     }
 }

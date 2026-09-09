@@ -1,15 +1,12 @@
 ﻿using ImageMagick;
-using System;
-using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Tviewer.model.ImageData;
 
-namespace WPF_Practice.Interfaces
+namespace Tviewer.Interfaces
 {
     //imageview
-    public delegate void ImageProcess(ref MagickImage image);
+    public delegate void ImageProcess(ImageData image);
+    public delegate void ImagePreProcess(MagickReadSettings settings);
 
     //DB
     public delegate T DBDelegate<T>(SQLiteConnection connection);

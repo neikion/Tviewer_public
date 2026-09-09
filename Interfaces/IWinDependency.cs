@@ -1,4 +1,4 @@
-﻿namespace WPF_Practice.Interfaces
+﻿namespace Tviewer.Interfaces
 {
     public interface IWinDependency
     {

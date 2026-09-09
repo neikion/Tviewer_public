@@ -1,21 +1,20 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
-using WPF_Practice.controller;
-using WPF_Practice.model;
-using System.Runtime.InteropServices;
 using System.Windows.Interop;
-using WPF_Practice.Interfaces;
+using Tviewer.Interfaces;
+using Tviewer.model;
 
-namespace WPF_Practice.view
+namespace Tviewer.view
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window,IWinDependency
     {
-        [DllImport("user32.dll")]
-        public static extern IntPtr SendMessage(IntPtr hwnd, int wMsg, int wParam, IntPtr lParam);
+        [LibraryImport("user32.dll",EntryPoint = "SendMessageW")]
+        private static partial IntPtr SendMessage(IntPtr hwnd, int wMsg, int wParam, IntPtr lParam);
         public MainWindow()
         {
             InitializeComponent();
@@ -29,31 +28,34 @@ namespace WPF_Practice.view
             get { return Math.Max(Height, ActualHeight); }
         }
 
-        private void OnKeyDown(object sender, KeyEventArgs e)
-        {
-            WpfExtensions.CallMethod(DataContext, nameof(OnKeyDown), e);
-        }
-
-        private void OnPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            WpfExtensions.CallMethod(DataContext, nameof(OnPreviewKeyDown), e);
-        }
-
         private void OnTitleDrag(object sender, MouseButtonEventArgs e)
         {
             WindowInteropHelper helper=new WindowInteropHelper(this);
+#if WINDOWS
             //parameter description
             //wMsg : 161(WM_NCLBUTTONDOWN, 0x00A1)
             //wParam : 2(HTCAPTION)
             //lParam : 0 (none)
-            SendMessage(helper.Handle, 161, 2, 0);
-
-            //not need dll. but minimize animation not smooth
-            /*if (controller.WinState == WindowState.Maximized)
+            SendMessage(helper.Handle, 0x00A1, 2, 0);
+#else
+            if (WindowState == WindowState.Maximized)
             {
-                SetWindowPositionBasedOnMouse(e);
+                ResizeBeforeDrag(e);
             }
-            DragMove();*/
+            DragMove();
+#endif
+        }
+
+        private void ResizeBeforeDrag(MouseButtonEventArgs e)
+        {
+            var sc = ScreenHelper.GetScreenFrom(this);
+            var point = e.GetPosition(this);
+            double per = (point.X) / (sc.WorkingArea.Width);
+            double padding = 10;
+            Left = PointToScreen(point).X - Math.Clamp((RestoreBounds.Width * per),TitleBar.ButtonImage.ActualWidth+ padding, RestoreBounds.Width-TitleBar.OperationGroup.ActualWidth- padding);
+            Top = 10;
+            WpfExtensions.CallMethod(DataContext, "SetFullScreen", false);
+            Top = 10;
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -92,11 +94,6 @@ namespace WPF_Practice.view
                 _margin.Bottom = 0;
                 ContentGrid.Margin = _margin;
             }
-        }
-
-        private void OnMaximize(object sender, MouseButtonEventArgs e)
-        {
-            WpfExtensions.CallCommand(DataContext, "MaximizeBtn", null);
         }
     }
 }

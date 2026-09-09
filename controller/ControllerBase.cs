@@ -1,21 +1,8 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
-
-namespace WPF_Practice.Interfaces
+﻿namespace Tviewer.controller
 {
-    public abstract class ControllerBase : INotifyPropertyChanged
+    public abstract class ControllerBase : NotifyPropertyChangedBase
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string? name = null)
-        {
-            var hendler = PropertyChanged;
-            if (hendler != null)
-            {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-            }
-        }
-
-        public virtual void OnEnabled() { }
+        public virtual void OnEnable() { }
+        public virtual void OnDisable() { }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace WPF_Practice.model
+namespace Tviewer.model
 {
     public enum StringSegmentResult
     {

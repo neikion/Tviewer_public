@@ -1,38 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using Tviewer.controller;
 
-namespace WPF_Practice.model
+namespace Tviewer.model
 {
-    public class ImageUserCollection : INotifyPropertyChanged
+    public class ImageUserCollection : NotifyPropertyChangedBase
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-
         private string _name;
         public string Name
         {
             get { return _name; }
             set { _name = value; OnPropertyChanged(); }
         }
-        public ObservableCollection<DBContent> Contents;
+
+        public long CollectionID=-1;
+
+        private List<long> _contentIDList;
+        public List<long> ContentIDList { get { return _contentIDList; } set { _contentIDList = value;OnPropertyChanged(); } }
         public ImageUserCollection()
         {
             _name = string.Empty;
-            Contents = new ObservableCollection<DBContent>();
-        }
-        public virtual void OnPropertyChanged([CallerMemberName] string? name = null)
-        {
-            var hendler = PropertyChanged;
-            if (hendler != null)
-            {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-            }
+            _contentIDList = new List<long>();
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Windows.Input;
 
-namespace WPF_Practice.model
+namespace Tviewer.model
 {
     static class WpfExtensions
     {

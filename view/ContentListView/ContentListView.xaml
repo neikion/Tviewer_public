@@ -1,0 +1,370 @@
+﻿<UserControl x:Class="Tviewer.view.ContentListView.ContentListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Tviewer.view.ContentListView"
+             xmlns:conv="clr-namespace:Tviewer.Converter"
+             xmlns:extension="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:modal="clr-namespace:Tviewer.view.Modal"
+             xmlns:searchType="clr-namespace:Tviewer.model.SearchEngine"
+             mc:Ignorable="d"
+             d:DesignHeight="450"
+             d:DesignWidth="800">
+
+    <UserControl.Resources>
+
+        <conv:TagSelectConverter x:Key="TagSelectConv" />
+        <conv:ContentPanelMarginConverter x:Key="PanelMarginConv" />
+
+        <Style x:Key="ImageListViewerStyle"
+               TargetType="{x:Type ListViewItem}">
+            <Setter Property="Background"
+                    Value="{StaticResource ContentCardBackground}" />
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}" />
+            <Setter Property="Margin"
+                    Value="10,20,10,20" />
+            <Setter Property="BorderBrush"
+                    Value="{StaticResource ContentCardBorderBrush}" />
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="Edit"
+                                  Command="{Binding OnRightClick}"
+                                  CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=ContextMenu}, Path=DataContext}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+            <EventSetter Event="KeyDown"
+                         Handler="ListViewItemClick" />
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListViewItem}">
+                        <Border Name="border"
+                                MouseDown="ListViewItemClick"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                Background="{TemplateBinding Background}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused"
+                                     Value="True">
+                                <Setter TargetName="border"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource ContentSelectBorderBrush}" />
+                                <Setter TargetName="border"
+                                        Property="Background"
+                                        Value="{StaticResource ContentSelectBackground}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ControlTemplate x:Key="ContentTagListItemTemplate"
+                         TargetType="{x:Type ListViewItem}">
+            <Border Name="border"
+                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    Background="{TemplateBinding Background}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    BorderBrush="{TemplateBinding BorderBrush}">
+                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </Border>
+        </ControlTemplate>
+
+        <Style x:Key="ContentTagListItem"
+               TargetType="{x:Type ListViewItem}">
+            <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}" />
+            <Setter Property="Focusable"
+                    Value="False" />
+            <Setter Property="Template"
+                    Value="{StaticResource ContentTagListItemTemplate}" />
+        </Style>
+
+
+
+        <Style x:Key="TagButtonStyle"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource RoundButton}">
+            <Setter Property="Margin"
+                    Value="0,0,5,4" />
+            <Setter Property="Padding"
+                    Value="3,1" />
+        </Style>
+
+        <Style TargetType="{x:Type ListView}"
+               x:Key="ContentTagListView">
+            <Setter Property="VerticalAlignment"
+                    Value="Center" />
+            <Setter Property="HorizontalAlignment"
+                    Value="Stretch" />
+            <Setter Property="Background"
+                    Value="Transparent" />
+            <Setter Property="BorderBrush"
+                    Value="Transparent" />
+            <Setter Property="BorderThickness"
+                    Value="0" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility"
+                    Value="Disabled" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility"
+                    Value="Hidden" />
+            <Setter Property="KeyboardNavigation.DirectionalNavigation"
+                    Value="Contained" />
+            <Setter Property="ItemContainerStyle"
+                    Value="{StaticResource ContentTagListItem}" />
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <!--HorizontalScrollBarVisibility and HorizontalContentAlignment is must need for width stretch-->
+        <ListView Name="contentView"
+                  Background="Transparent"
+                  BorderBrush="Transparent"
+                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:ContentListView}}, Path=ContentList}"
+                  VirtualizingPanel.ScrollUnit="Pixel"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                  ScrollViewer.ScrollChanged="ScrollChanged"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  HorizontalContentAlignment="Stretch"
+                  Loaded="ListViewLoaded"
+                  KeyboardNavigation.DirectionalNavigation="Contained"
+                  ItemContainerStyle="{StaticResource ImageListViewerStyle}">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel Margin="{Binding RelativeSource={RelativeSource AncestorType=ListView}, Path=ActualWidth, Converter={StaticResource PanelMarginConv}}" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <!--ImageMaxWidth-->
+                                <ColumnDefinition MaxWidth="200" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    BorderThickness="0"
+                                    Background="Black">
+                                <Image Source="{Binding Source}"
+                                       VerticalAlignment="Center"
+                                       MaxWidth="200"
+                                       MaxHeight="200"
+                                       Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="Fant" />
+                            </Border>
+
+                            <Grid Grid.Column="1"
+                                  Margin="10,0,0,0"
+                                  VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition MaxWidth="50" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Title"
+                                                   HorizontalAlignment="Left"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="{StaticResource ContentListItemCategoryFontSize}"
+                                                   Foreground="{StaticResource ContentListItemCategoryFontColor}"
+                                                   TextWrapping="NoWrap" />
+                                        <TextBlock Text="{Binding Title}"
+                                                   TextAlignment="Left"
+                                                   Margin="0,3,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{StaticResource ContentListItemTitleFontColor}"
+                                                   FontSize="{StaticResource ContentListItemTitleFontSize}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <Button Name="collectionButton"
+                                            Grid.Column="1"
+                                            Content="+"
+                                            Width="50"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            VerticalContentAlignment="Center"
+                                            FocusVisualStyle="{x:Null}"
+                                            Style="{StaticResource RoundButton}">
+                                        <extension:Interaction.Triggers>
+                                            <extension:EventTrigger EventName="ScrollChanged"
+                                                                    SourceObject="{Binding RelativeSource={RelativeSource AncestorType=ScrollViewer}}">
+                                                <extension:ChangePropertyAction TargetObject="{Binding ElementName=collectionPopUp}"
+                                                                                PropertyName="IsOpen"
+                                                                                Value="false" />
+                                            </extension:EventTrigger>
+                                            <extension:EventTrigger EventName="Click">
+                                                <!--Parameter operation must be executed before is IsOpen-->
+                                                <extension:ChangePropertyAction TargetObject="{Binding ElementName=collectionPopUp}"
+                                                                                PropertyName="ItemSelectedCommandParameter"
+                                                                                Value="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=DataContext}" />
+                                                <extension:ChangePropertyAction TargetObject="{Binding ElementName=collectionPopUp}"
+                                                                                PropertyName="PlacementTarget"
+                                                                                Value="{Binding ElementName=collectionButton}" />
+                                                <extension:ChangePropertyAction TargetObject="{Binding ElementName=collectionPopUp}"
+                                                                                PropertyName="IsOpen"
+                                                                                Value="true" />
+                                            </extension:EventTrigger>
+                                        </extension:Interaction.Triggers>
+                                    </Button>
+                                </Grid>
+
+                                <DockPanel Grid.Row="1"
+                                           Margin="0,5,0,0"
+                                           HorizontalAlignment="Left">
+
+                                    <TextBlock DockPanel.Dock="Top"
+                                               Text="Artist"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center"
+                                               FontSize="{StaticResource ContentListItemCategoryFontSize}"
+                                               Foreground="{StaticResource ContentListItemCategoryFontColor}"
+                                               TextWrapping="NoWrap" />
+
+                                    <ListView DockPanel.Dock="Top"
+                                              ItemsSource="{Binding Artist}"
+                                              Style="{StaticResource ContentTagListView}">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding }"
+                                                        Style="{StaticResource TagButtonStyle}"
+                                                        Background="{StaticResource ContentTagButtonBackground}"
+                                                        Foreground="{StaticResource ContentTagButtonForeground}"
+                                                        BorderBrush="Transparent"
+                                                        FontSize="{StaticResource ContentListItemTagFontSize}"
+                                                        Command="{Binding RelativeSource={RelativeSource AncestorType=local:ContentListView}, Path=TagClickCommand}"
+                                                        FocusVisualStyle="{x:Null}">
+                                                    <Button.CommandParameter>
+                                                        <MultiBinding Converter="{StaticResource TagSelectConv}">
+                                                            <Binding Source="{x:Static searchType:SearchField.Artist}" />
+                                                            <Binding RelativeSource="{RelativeSource Mode=Self}"
+                                                                     Path="Content" />
+                                                        </MultiBinding>
+                                                    </Button.CommandParameter>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </DockPanel>
+
+                                <DockPanel Grid.Row="2"
+                                           HorizontalAlignment="Left">
+
+                                    <TextBlock DockPanel.Dock="Top"
+                                               Text="Group"
+                                               TextAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Left"
+                                               FontSize="{StaticResource ContentListItemCategoryFontSize}"
+                                               Foreground="{StaticResource ContentListItemCategoryFontColor}"
+                                               TextWrapping="NoWrap" />
+
+                                    <ListView DockPanel.Dock="Top"
+                                              ItemsSource="{Binding Group}"
+                                              Style="{StaticResource ContentTagListView}">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding }"
+                                                        Style="{StaticResource TagButtonStyle}"
+                                                        Background="{StaticResource ContentTagButtonBackground}"
+                                                        Foreground="{StaticResource ContentTagButtonForeground}"
+                                                        BorderBrush="Transparent"
+                                                        FontSize="{StaticResource ContentListItemTagFontSize}"
+                                                        Command="{Binding RelativeSource={RelativeSource AncestorType=local:ContentListView}, Path=TagClickCommand}"
+                                                        FocusVisualStyle="{x:Null}">
+                                                    <Button.CommandParameter>
+                                                        <MultiBinding Converter="{StaticResource TagSelectConv}">
+                                                            <Binding Source="{x:Static searchType:SearchField.Group}" />
+                                                            <Binding RelativeSource="{RelativeSource Mode=Self}"
+                                                                     Path="Content" />
+                                                        </MultiBinding>
+                                                    </Button.CommandParameter>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </DockPanel>
+                            </Grid>
+                        </Grid>
+
+                        <ItemsControl ItemsSource="{Binding Tags}"
+                                      Grid.Row="1"
+                                      VerticalAlignment="Top"
+                                      Margin="0,20,0,0"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      KeyboardNavigation.DirectionalNavigation="Contained"
+                                      KeyboardNavigation.IsTabStop="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding }"
+                                            Style="{StaticResource TagButtonStyle}"
+                                            Background="{StaticResource ContentOtherTagButtonBackground}"
+                                            Foreground="{StaticResource ContentTagButtonForeground}"
+                                            BorderBrush="Transparent"
+                                            FontSize="{StaticResource ContentListItemTagFontSize}"
+                                            Command="{Binding RelativeSource={RelativeSource AncestorType=local:ContentListView}, Path=TagClickCommand}"
+                                            FocusVisualStyle="{x:Null}">
+                                        <Button.CommandParameter>
+                                            <MultiBinding Converter="{StaticResource TagSelectConv}">
+                                                <Binding Source="{x:Static searchType:SearchField.Other}" />
+                                                <Binding RelativeSource="{RelativeSource Mode=Self}"
+                                                         Path="Content" />
+                                            </MultiBinding>
+                                        </Button.CommandParameter>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <modal:CheckBoxModal x:Name="collectionPopUp"
+                             Placement="Custom"
+                             CustomPlacementMode="RightUp"
+                             ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=local:ContentListView}, Path=CollectionSource, UpdateSourceTrigger=PropertyChanged}"
+                             ItemSelectedCommand="{Binding RelativeSource={RelativeSource AncestorType=local:ContentListView}, Path=CollectionChangedCommand}" />
+    </Grid>
+
+</UserControl>

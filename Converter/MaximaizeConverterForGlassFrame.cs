@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace WPF_Practice.Converter
+namespace Tviewer.Converter
 {
     public class MaximaizeConverterForGlassFrame : IValueConverter
     {

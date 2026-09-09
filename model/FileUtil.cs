@@ -1,63 +1,27 @@
-﻿using ImageMagick;
+﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.IO;
-using System.Threading.Tasks;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using WPF_Practice.Interfaces;
-using WPF_Practice.model;
-using WinForms = System.Windows.Forms;
+using Tviewer.model;
 
-namespace WPF_Practice
+namespace Tviewer
 {
     public static class FileUtil
     {
-
-        public static BitmapImage CreateBitmapPath(string path)
-        {
-            BitmapImage bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnDemand;
-            bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
-            bitmap.UriSource = new Uri(path);
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
-        }
+        private static object DebugLogObj=new object();
+        
         /// <summary>
-        /// bitmapimage class with stream
+        /// return first image of directory
         /// </summary>
-        public static async Task getImageFilesAsync_BitmapImage(List<string> directory, Action<List<BitmapImage>> callback)
-        {
-            List<BitmapImage> result = new List<BitmapImage>();
-            for (int i = 0; i < directory.Count; i++)
-            {
-                using (FileStream fs = new FileStream(directory[i], FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
-                {
-                    byte[] source = new byte[fs.Length];
-                    Memory<byte> sourceView = source;
-                    await fs.ReadExactlyAsync(source);
-                    BitmapImage bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.CacheOption = BitmapCacheOption.OnDemand;
-                    bitmap.CreateOptions = BitmapCreateOptions.DelayCreation;
-                    //gdi+의 api를 호출하는데 gdi+의 LoadImageFromStream은 이미지를 사용하는 동안 stream이 열려 있어야 한다.
-                    bitmap.StreamSource = new MemoryStream(source);
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-                    result.Add(bitmap);
-                }
-            }
-            callback(result);
-        }
-
+        /// <param name="fullPath"></param>
+        /// <returns></returns>
         public static string GetTitleFilePath(string fullPath)
         {
             var e = Directory.EnumerateFileSystemEntries(fullPath, "*", new EnumerationOptions { AttributesToSkip = FileAttributes.None });
-            var list =e.ToImmutableList().Sort(NaturalCompare.CompareOrdinal);
-            for(int i= 0; i < list.Count; i++)
+            var list = e.ToImmutableList().Sort(NaturalCompare.CompareOrdinal);
+            for (int i = 0; i < list.Count; i++)
             {
                 if (WorkSpaceScanner.s_imageRegex.IsMatch(list[i]))
                 {
@@ -67,49 +31,87 @@ namespace WPF_Practice
             return string.Empty;
         }
 
-
-        #region imagemagick
-        public static async Task getTunmnail(List<string> directory, Action<ImageSource[]> callback)
+        private static OpenFolderDialog FolderDialog = new OpenFolderDialog()
         {
-            ImageSource[] result = new ImageSource[directory.Count];
-            Task[] tasks = new Task[directory.Count];
-            for (int index = 0; index < directory.Count; index++)
-            {
-                tasks[index] = readFileCallBack_Thumnail(directory[index], result, index);
-            }
-            await Task.WhenAll(tasks);
-            callback(result);
+            Multiselect = true,
+            InitialDirectory = Environment.CurrentDirectory,
+            ShowHiddenItems = true,
+            DereferenceLinks = true
+        };
 
-        }
-        private static async Task readFileCallBack_Thumnail(string path, ImageSource[] sources, int index)
+        public static void Log(string text)
         {
-            using var image = new MagickImage();
-            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+            lock (DebugLogObj)
             {
-                await image.ReadAsync(fs);
-                image.Format = MagickFormat.Bmp;
-                IMagickGeometry geometry = new MagickGeometry();
-                image.Thumbnail(200, 200);
-                ImageSource t = ImageMagick.IMagickImageExtentions.ToBitmapSource(image);
-                t.Freeze();
-                sources[index] = t;
+                using FileStream fileStream = new FileStream(Environment.CurrentDirectory + "/Log.txt", FileMode.OpenOrCreate);
+                fileStream.Seek(0, SeekOrigin.End);
+                using StreamWriter streamWriter = new StreamWriter(fileStream);
+                DateTime time = DateTime.UtcNow;
+                streamWriter.WriteLine();
+                streamWriter.WriteLine($"Time : {time.ToString("HH:mm:ss")} ({time.Ticks})");
+                streamWriter.WriteLine($"OS : {Environment.OSVersion}");
+                streamWriter.WriteLine(text);
+                streamWriter.Flush();
             }
         }
-        #endregion
 
-
-        public class UsedWinform : IWinformUsing
+        public static List<string> OpenDirectoryBrowser()
         {
-            public static string? openDirectoryBrowser()
+            List<string>? data=null;
+            if (FolderDialog.ShowDialog() == true)
             {
-                WinForms.FolderBrowserDialog open = new WinForms.FolderBrowserDialog();
-                open.InitialDirectory = Environment.CurrentDirectory;
-                if (open.ShowDialog() != WinForms.DialogResult.OK)
+                if (FolderDialog.FolderNames.Length > 0)
                 {
-                    return null;
+                    data = new List<string>(FolderDialog.FolderNames.Length);
+                    for (int i = 0; i < FolderDialog.FolderNames.Length; i++)
+                    {
+                        if (!string.IsNullOrEmpty(FolderDialog.FolderNames[i]))
+                        {
+                            data.Add(FolderDialog.FolderNames[i]);
+                        }
+                    }
                 }
-                return open.SelectedPath;
             }
+            if (data == null) data = new List<string>();
+            return data;
+        }
+
+
+        public static string FileSizeToString(long value)
+        {
+            string suffix;
+            double readable;
+            switch (Math.Abs(value))
+            {
+                case >= 0x1000000000000000:
+                    suffix = "EiB";
+                    readable = value >> 50;
+                    break;
+                case >= 0x4000000000000:
+                    suffix = "PiB";
+                    readable = value >> 40;
+                    break;
+                case >= 0x10000000000:
+                    suffix = "TiB";
+                    readable = value >> 30;
+                    break;
+                case >= 0x40000000:
+                    suffix = "GiB";
+                    readable = value >> 20;
+                    break;
+                case >= 0x100000:
+                    suffix = "MiB";
+                    readable = value >> 10;
+                    break;
+                case >= 0x400:
+                    suffix = "KiB";
+                    readable = value;
+                    break;
+                default:
+                    return value.ToString("0 B");
+            }
+
+            return (readable / 1024).ToString("0.## ", CultureInfo.InvariantCulture) + suffix;
         }
     }
 }

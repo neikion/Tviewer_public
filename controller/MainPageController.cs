@@ -2,213 +2,306 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data.SQLite;
-using System.Diagnostics;
-using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media.Imaging;
-using System.Windows.Threading;
-using WPF_Practice.Interfaces;
-using WPF_Practice.model;
-using WPF_Practice.view;
+using Tviewer.Interfaces;
+using Tviewer.model;
+using Tviewer.model.DB;
+using Tviewer.model.EventArgs;
+using Tviewer.model.ImageData;
+using Tviewer.model.SearchEngine;
+using Tviewer.model.Setting;
+using Tviewer.model.Util;
+using Tviewer.view;
 
-namespace WPF_Practice.controller
+namespace Tviewer.controller
 {
-    class MainPageController : ControllerBase
+    public class MainPageController : ControllerBase
     {
+
+        public enum PageState
+        {
+            Home,
+            Search,
+        }
+
+        private ObservableBICollection<ImageListContent> _contentList = new ObservableBICollection<ImageListContent>();
         /// <summary>
         /// option category list
         /// </summary>
-        public ObservableCollection<ImageListContent> ContentList { get; set; }
-        public ObservableCollection<ImageUserCollection> UserCollection { get; set; }
-        private List<DBContent> _DBContentList = new List<DBContent>();
-        protected Dispatcher UI_Dispatcher;
-
-        private CommandCarrier<object[]> _ListViewItemInputDown;
-        public CommandCarrier<object[]> ListViewItemInputDown
+        public ObservableBICollection<ImageListContent> ContentList
         {
-            get { return _ListViewItemInputDown; }
-            set { _ListViewItemInputDown = value; }
-        }
-
-        private CommandCarrier _menuButton;
-        public CommandCarrier MenuButton
-        {
-            get { return _menuButton; }
-            set { _menuButton = value; OnPropertyChanged(); }
-        }
-        private CommandCarrier _configButton;
-        public CommandCarrier ConfigCommand
-        {
-            get => _configButton;
+            get => _contentList;
             set
             {
-                _configButton = value;
+                _contentList = value;
                 OnPropertyChanged();
             }
         }
 
-        private INavigateHost? _navigateHost=null;
+        private ReadOnlyObservableCollection<ImageUserCollection> userCollection;
+        public ReadOnlyObservableCollection<ImageUserCollection> UserCollection
+        { 
+            get => userCollection; 
+            set 
+            {
+                userCollection = value;
+                OnPropertyChanged(); 
+            } 
+        }
+
+        private HostControllerBase? _navigateHost=null;
+        private IOwnerSetter? OwnerSetter;
+        private ImageProcessor processor = new ImageProcessor();
+        private long ContentLoadingCount = 0;
+        private CancellationTokenSource CancelControl = new CancellationTokenSource();
+        private PageState pageState = PageState.Home;
+        private bool needUpdate = true;
+        private readonly myDB db = new myDB();
+
+
+        private CommandCarrier _ListViewItemInputDown;
+        public CommandCarrier ListViewItemInputDown
+        {
+            get { return _ListViewItemInputDown; }
+            set { _ListViewItemInputDown = value; OnPropertyChanged(); }
+        }
+
+        public CommandCarrier<string> SearchButtonDown { get; set; }
+        public CommandCarrier ScrollToEnd { get; set; }
+        public CommandCarrier<SelectedTagObject> ListViewTagClick { get; set; }
+        public CommandCarrier<CheckBoxModalEventArgs> OnCollectionChanged { get; set; }
+
+        public CommandCarrier<ImageListContent> OpenContentSetting { get; set; }
+
+
+        private int selectedIndex=0;
+        public int SelectedIndex { get=>selectedIndex; set { selectedIndex = value; OnPropertyChanged(); } }
+
+        private string searchText;
+        public string SearchText { get => searchText; set { searchText = value; OnPropertyChanged(); } }
+        public bool IsInputText { set { InputTextChange.Execute(value); } }
+        public CommandCarrier<bool> InputTextChange;
 
         public MainPageController()
         {
-            using myDB db = new myDB();
-            ContentList = new ObservableCollection<ImageListContent>();
-            UI_Dispatcher = Application.Current.Dispatcher;
-            _DBContentList = GetLatestContent(db, 0, 10);
-            SetContentList(_DBContentList).ConfigureAwait(false);
-            UserCollection = getUserCollectionName();
-            _ListViewItemInputDown = new CommandCarrier<object[]>(
-                (values) =>
+            ListViewItemInputDown = new CommandCarrier(() =>
                 {
-                    if (values == null) return;
-                    if (values[1] is System.Windows.Input.KeyEventArgs key)
-                    {
-                        if (WpfExtensions.RealKey(key) != System.Windows.Input.Key.Enter) return;
-                }
-                    else if (values[1] is System.Windows.Input.MouseButtonEventArgs mouse)
-                {
-                        if(mouse.LeftButton!=System.Windows.Input.MouseButtonState.Pressed) return;
-                    }
-                    else
-                    {
-                        return;
-                    }
-                    ImageListContent? item = values[0] as ImageListContent;
-                    if (item == null) return;
-                    _navigateHost?.Move<ImageView>(new ImageViewController(item.Path,_navigateHost));
+                    needUpdate = false;
+                    var iter = ContentList.GetEnumerator(ScrollToEnd, SelectedIndex);
+                    _navigateHost?.Move<ImageView>(ControllerStore.Get<ImageViewController>().Init(iter, _navigateHost, processor.UI_dispatcher));
                 }
              );
-            _configButton = new CommandCarrier((o) =>
+            ScrollToEnd = new CommandCarrier(() =>
             {
-                Config.OpenUserConfigWindow();
-            });
-
-        }
-        public MainPageController(INavigateHost navigateHost) : this()
-        {
-            _navigateHost = navigateHost;
-        }
-
-        public async Task SetContentList(List<DBContent> DBcontents)
-        {
-            for (int i = 0; i < DBcontents.Count; i++)
-            {
-                ImageListContent content = new ImageListContent(DBcontents[i]);
-                await SetContent(content);
-                lock (_DBContentList)
+                if(Interlocked.Read(ref ContentLoadingCount) == 0)
                 {
-                ContentList.Add(content);
-            }
-        }
-        }
-        private async Task SetContent(ImageListContent content)
-        {
-            BitmapSource? source = await ReadImageAsync(FileUtil.GetTitleFilePath(content.Path), default, (ref MagickImage image) =>
-            {
-                image.Thumbnail(new MagickGeometry(200, 200) { IgnoreAspectRatio = false });
+                    List<DBContent> list = GetLatestContent((ulong)ContentList.Count, (ulong)ContentList.Count + 10);
+                    AddContentList(list, CancelControl.Token);
+                }
             });
-            if (source != null)
+            SearchButtonDown = new CommandCarrier<string>((s) =>
             {
-                content.Source = source;
-            }
+                if (!string.IsNullOrWhiteSpace(s))
+                {
+                    pageState = PageState.Search;
+                    _=Search(s);
+                    needUpdate = true;
+                }
+                else
+                {
+                    UpdateToHome();
+                }
+            });
+            ListViewTagClick = new CommandCarrier<SelectedTagObject>((o)=>
+            {
+                if (o is null) return;
+                StringBuilder sb = new StringBuilder().Append('\"').Append(SearchDBHelper.FieldDictionary[o.filed]).Append(':').Append(o.tag).Append('\"');
+                SearchText = sb.ToString();
+                SearchButtonDown.Execute(SearchText);
+            });
+            UserCollection = Config.UserCollection.Collection;
+            OnCollectionChanged = new CommandCarrier<CheckBoxModalEventArgs>((collection) =>
+            {
+                //TODO : add collection
+            });
+            OpenContentSetting = new CommandCarrier<ImageListContent>((value) =>
+            {
+                if (value is null) return;
+                App.OpenContentSettingWindow(value, OwnerSetter);
+            });
         }
 
-        protected async Task<BitmapSource?> ReadImageAsync(string path, CancellationToken token = default, ImageProcess? optionCall = null)
+        public MainPageController Init(HostControllerBase? navigateHost, CommandCarrier<bool> isInputTextChange, IOwnerSetter? setter=null)
         {
-            MagickImage image;
-            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous))
+            if (navigateHost != null) _navigateHost = navigateHost;
+            if (isInputTextChange != null) InputTextChange = isInputTextChange;
+            OwnerSetter = setter;
+            if (needUpdate)
             {
-
-                using (image = new MagickImage())
+                List<DBContent> _contentsList = new List<DBContent>(0);
+                WorkSpaceScanner scanner = new WorkSpaceScanner(db);
+                try
                 {
-                    MagickReadSettings settings = new MagickReadSettings();
-                    settings.AntiAlias = false;
-                    image.Quality = 100;
-                    await image.ReadAsync(fs, settings, token).ConfigureAwait(false);
-                    optionCall?.Invoke(ref image);
-
-                    try
+                    while (needUpdate)
                     {
-                        return await UI_Dispatcher.InvokeAsync<BitmapSource?>(() =>
+                        _contentsList = GetLatestContent(0, 10);
+                        if (!(scanner.ValidationContentWithFix(_contentsList, out needUpdate) || needUpdate))
                         {
-                            var result = IMagickImageExtentions.ToBitmapSource(image);
-                            result.Freeze();
-                            return result;
-                        }, DispatcherPriority.Normal, token).Task.ConfigureAwait(false);
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        Debug.WriteLine($"cancel path {path}");
-                        return null;
+                            FileUtil.Log($"Critical Error Occurred \n ValidationContent Error \n system log NeedNewContents : {needUpdate}");
+                            App.OpenModal($"Critical Error Occurred\n please check the log");
+                            _navigateHost?.Close(true);
+                            return this;
+                        }
                     }
                 }
+                finally
+                {
+                    scanner.DisposeWithCloseDBLink();
+                }
+                SetDBList(_contentsList);
+                needUpdate = false;
+            }
+            return this;
+        }
+
+        public override void OnEnable()
+        {
+            base.OnEnable();
+            if (needUpdate)
+            {
+                UpdateToHome();
             }
         }
 
-        protected ObservableCollection<ImageUserCollection> getUserCollectionName()
+        public void checkUpdateNeeds()
         {
-            var list = GetCollectionNames();
-            ObservableCollection<ImageUserCollection> result=new ObservableCollection<ImageUserCollection>();
-            if (list == null)
+            if(pageState == PageState.Search)
             {
-                return result;
+                needUpdate = true;
             }
-            for (int i = 0; i < list.Count; i++)
-            {
-                ImageUserCollection collection = new ImageUserCollection();
-                collection.Name = list[i];
-                result.Add(collection);
-            }
-            return result;
         }
-        public List<string>? GetCollectionNames()
+
+        public void UpdateToHome()
         {
-            using myDB db=new myDB();
+            SearchText = string.Empty;
+            var result = GetLatestContent(0, 10);
+            SetDBList(result);
+            pageState = PageState.Home;
+            needUpdate = false;
+        }
+
+        private async Task Search(string data)
+        {
+            var list = await Task.Factory.StartNew((value) =>
+            {
+                if (value is string svalue)
+                    return SearchEngine.Search(svalue);
+                else
+                    return new List<long>(0);
+            },data,default,TaskCreationOptions.DenyChildAttach,TaskScheduler.Default);
+            var result = db.Execute((connection) =>
+            {
+                SQLiteCommand command = new SQLiteCommand(connection);
+                var table = DBHelper.GetTable<Table.ContentTable>();
+                StringBuilder sb = new StringBuilder("select * from ").Append(table.TableName).Append(" where ").Append(table.ContentID).Append(" in (");
+                for (int i = 0; i < list.Count; i++)
+                {
+                    sb.Append("?");
+                    command.Parameters.Add(new SQLiteParameter() { Value = list[i] });
+                    if (i < list.Count - 1)
+                    {
+                        sb.Append(", ");
+                    }
+                }
+                sb.Append(')');
+                command.CommandText = sb.ToString();
+                var reader = command.ExecuteReader();
+                return db.ParseContent(reader);
+            });
+            SetDBList(result);
+        }
+
+        /// <summary>
+        /// CancellationTokenSource is cancel and set new CancellationTokenSource
+        /// </summary>
+        private void SetCancelControl()
+        {
+            if (CancelControl != null)
+            {
+                CancelControl.Cancel();
+                CancelControl.Dispose();
+            }
+            CancelControl = new CancellationTokenSource();
+        }
+
+        private void AddContentList(List<DBContent> DBcontents, CancellationToken token)
+            => AddContentList(DBcontents,0,DBcontents.Count, token);
+
+        private void AddContentList(List<DBContent> DBcontents, int startIndex, int endIndex, CancellationToken token)
+        {
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                ImageListContent content = new ImageListContent(DBcontents[i],false);
+                content.OnRightClick = OpenContentSetting;
+                Interlocked.Increment(ref ContentLoadingCount);
+                ContentList.Add(content);
+                Task.Factory.StartNew((value) =>
+                {
+                    if (value is ThreadDataObject data)
+                    {
+                        _=SetContent((ImageListContent)data.value, data.token);
+                    }
+                }, new ThreadDataObject() { value = content, token = token }, token, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            }
+        }
+
+        private async Task SetContent(ImageListContent content, CancellationToken token)
+        {
+            var image = await processor.ReadImageData(FileUtil.GetTitleFilePath(content.Path), token, processor.UI_dispatcher,
+                (MagickReadSettings setting) =>
+                {
+                    setting.Height = 200;
+                    setting.Width = 200;
+                    setting.AntiAlias = false;
+                }, (ImageData image) =>
+                {
+                    image[0].Thumbnail(new MagickGeometry(200, 200) { IgnoreAspectRatio = false });
+                });
+            if(image is not null)
+                content.Source = await processor.ToBitmapSource(image[0], processor.UI_dispatcher, token);
+            Interlocked.Decrement(ref ContentLoadingCount);
+        }
+
+        private void SetDBList(List<DBContent> list)
+            => SetDBList(list, 0, list.Count);
+
+        private void SetDBList(List<DBContent> list, int startIndex, int endIndex)
+        {
+            SetCancelControl();
+            ContentList.Clear();
+            AddContentList(list, startIndex, endIndex, CancelControl.Token);
+        }
+
+        /// <summary>
+        /// GetLatestContent
+        /// </summary>
+        /// <param name="offset">skip content count</param>
+        /// <param name="count">get content count</param>
+        /// <returns></returns>
+        public List<DBContent> GetLatestContent(ulong offset, ulong count)
+        {
             return db.Execute((connection) =>
             {
-                List<string>? list;
                 using SQLiteCommand command = new SQLiteCommand(connection);
-                string colName = db.GetTagNameColumnName(connection, DBHelper.Table.Collection, 1);
-                command.CommandText = $"select {colName} from {DBHelper.CollectionTagTableName};";
-                using SQLiteDataReader reader = command.ExecuteReader();
-                if (!reader.HasRows)
-                {
-                    return null;
-                }
-                list = new List<string>();
-                while (reader.Read())
-                {
-                    list.Add(reader.GetString(0));
-                }
-                return list;
-            });
-        }
-
-        public List<DBContent> GetLatestContent(myDB db,ulong offset, ulong count)
-        {
-            List<DBContent>? result = db.Execute((connection) =>
-            {
-                List<DBContent> contents = new List<DBContent>();
-                using SQLiteCommand command = new SQLiteCommand(connection);
-                command.CommandText = $"select * from {DBHelper.ContentTableName} order by {DBHelper.ContentTable_ModifyTime} DESC limit @{nameof(count)} offset @{nameof(offset)}";
+                var table = DBHelper.GetTable<Table.ContentTable>();
+                command.CommandText = $"select * from {table.TableName} order by {table.ModifyTime} DESC limit @{nameof(count)} offset @{nameof(offset)}";
                 command.Parameters.AddWithValue($"@{nameof(count)}", count);
                 command.Parameters.AddWithValue($"@{nameof(offset)}", offset);
                 using SQLiteDataReader reader = command.ExecuteReader();
-                DBContent content;
-                while (reader.Read())
-                {
-                    content = new DBContent(reader.GetString(2), reader.GetInt64(0), reader.GetString(1), reader.GetInt64(3), reader.GetInt64(4), reader.GetInt64(5));
-                    contents.Add(content);
-                }
-                return contents;
+                return db.ParseContent(reader);
             });
-            if(result== null)
-            {
-                result = new List<DBContent>();
-            }
-            return result;
         }
 
     }

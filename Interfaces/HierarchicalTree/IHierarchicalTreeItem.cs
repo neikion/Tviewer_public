@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.ObjectModel;
 
-namespace WPF_Practice.Interfaces.HierarchicalTree
+namespace Tviewer.Interfaces.HierarchicalTree
 {
     public interface IHierarchicalTreeItem
     {
+        IHierarchicalTreeItem? Parent { get; set; }
+        ObservableCollection<IHierarchicalTreeItem> Children { get; }
+        bool Selected { get; set; }
+
+        bool IsExpanded { get; set; }
     }
 }

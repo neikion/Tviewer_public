@@ -1,20 +1,18 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using WPF_Practice.Interfaces.HierarchicalTree;
+using Tviewer.controller;
+using Tviewer.Interfaces.HierarchicalTree;
 
-namespace WPF_Practice.model.HierarchicalTree
+namespace Tviewer.model.HierarchicalTree
 {
-    public class HierarchicalTreeItem : INotifyPropertyChanged , IHierarchicalTreeItem
+    public class HierarchicalTreeItem : NotifyPropertyChangedBase , IHierarchicalTreeItem
     {
-        private string _name;
+        private string _name = string.Empty;
         public string Name
         {
             get { return _name; }
             set { _name = value; OnPropertyChanged(); }
         }
-
         private IHierarchicalTreeItem? _parent;
         public IHierarchicalTreeItem? Parent
         {
@@ -31,21 +29,31 @@ namespace WPF_Practice.model.HierarchicalTree
 
         public ObservableCollection<IHierarchicalTreeItem> Children { get; set; }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public bool Selected { get; set; }
+        public bool IsExpanded { get;set; }
 
         public HierarchicalTreeItem()
         {
-            _name = string.Empty;
             Children= new ObservableCollection<IHierarchicalTreeItem>();
-
+            Children.CollectionChanged += OnChangedChildren;
         }
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string? name = null)
+        private void OnChangedChildren(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            var hendler = PropertyChanged;
-            if (hendler != null)
+            if (e.NewItems != null)
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+                foreach (IHierarchicalTreeItem item in e.NewItems)
+                {
+                    item.Parent = this;
+                    if(item.Selected || item.IsExpanded) IsExpanded = true;
+                }
+            }
+            if(e.OldItems is not null)
+            {
+                foreach(IHierarchicalTreeItem oldItem in e.OldItems)
+                {
+                    oldItem.Parent = null;
+                }
             }
         }
     }

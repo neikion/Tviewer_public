@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace WPF_Practice.model
+namespace Tviewer.model
 {
     public abstract class CommandCarrierBase : ICommand
     {
@@ -30,7 +26,7 @@ namespace WPF_Practice.model
         /// </summary>
         public void RaisesCanExecuteChanged()
         {
-            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            CanExecuteChanged?.Invoke(this, System.EventArgs.Empty);
         }
         public abstract bool CanExecute(object? parameter);
 
@@ -38,25 +34,25 @@ namespace WPF_Practice.model
     }
     public class CommandCarrier : CommandCarrierBase
     {
-        private Action<object?> _execute;
+        private Action _execute;
         private Predicate<object?>? _canExecute;
-        public CommandCarrier(Action<object?> execute) : this(execute, null){}
-        public CommandCarrier(Action<object?> execute, Predicate<object?>? canExecute)
+        public CommandCarrier(Action execute) : this(execute, null){}
+        public CommandCarrier(Action execute, Predicate<object?>? canExecute)
         {
             if (execute == null)
                 throw new ArgumentNullException("execute");
             _execute = execute;
             _canExecute = canExecute;
         }
-
+       
         public override bool CanExecute(object? parameter)
         {
             return _canExecute == null || _canExecute(parameter);
         }
 
-        public override void Execute(object? parameter)
+        public override void Execute(object? parameter=null)
         {
-            _execute(parameter);
+            _execute();
         }
     }
     public class CommandCarrier<T> : CommandCarrierBase
